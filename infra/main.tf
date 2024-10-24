@@ -26,7 +26,7 @@ resource "confluent_kafka_cluster" "kafka_cluster" {
   cloud        = "GCP"
   region       =  var.provider_region
   
-  standard {}
+  basic {}
 
   environment {
     id = confluent_environment.environment.id
@@ -71,7 +71,137 @@ resource "confluent_api_key" "cluster_owner_api_key" {
       id = confluent_environment.environment.id
     }
   }
-
-  ## TODO ACLs
-
 }
+
+resource "confluent_role_binding" "kafka_cluser_owner_rb" {
+  principal   = "User:${confluent_service_account.cluster_owner.id}"
+  role_name   = "CloudClusterAdmin"  
+  crn_pattern = confluent_kafka_cluster.kafka_cluster.rbac_crn
+}
+
+# ##### SUPER "USER" - FOR BASIC CLUSTER (OR WHEN USING ACLs ONLY IN STANDARD)
+# data "confluent_service_account" "super_user" {
+#   id = "sa-nqknq6"
+# }
+
+# resource "confluent_api_key" "su_api_key" {
+#   display_name = "${data.confluent_service_account.super_user.display_name}_API_KEY"
+#   description  = "Kafka API Key that is owned by '${data.confluent_service_account.super_user.display_name}' service account"
+
+#   owner {
+#     id          = data.confluent_service_account.super_user.id
+#     api_version = data.confluent_service_account.super_user.api_version
+#     kind        = data.confluent_service_account.super_user.kind
+#   }
+
+#   managed_resource {
+#     id          = confluent_kafka_cluster.kafka_cluster.id
+#     api_version = confluent_kafka_cluster.kafka_cluster.api_version
+#     kind        = confluent_kafka_cluster.kafka_cluster.kind
+
+#     environment {
+#       id = confluent_environment.environment.id
+#     }
+#   }
+# }
+
+# ## ACLS FOR CLUSTER OWNER
+# resource "confluent_kafka_acl" "cluster_owner_acl_describe_topic_resource" {
+#   kafka_cluster {
+#     id = confluent_kafka_cluster.kafka_cluster.id
+#   }
+#   rest_endpoint = confluent_kafka_cluster.kafka_cluster.rest_endpoint
+
+#   resource_type = "TOPIC"
+#   resource_name = "*"
+#   pattern_type  = "LITERAL"
+#   principal     = "User:${confluent_service_account.cluster_owner.id}"
+#   host          = "*"
+#   operation     = "DESCRIBE"
+#   permission    = "ALLOW"
+  
+#   credentials {
+#     key    = confluent_api_key.su_api_key.id
+#     secret = confluent_api_key.su_api_key.secret
+#   }
+# }
+
+# resource "confluent_kafka_acl" "cluster_owner_acl_describe_config_topic_resource" {
+#   kafka_cluster {
+#     id = confluent_kafka_cluster.kafka_cluster.id
+#   }
+#   rest_endpoint = confluent_kafka_cluster.kafka_cluster.rest_endpoint
+
+#   resource_type = "TOPIC"
+#   resource_name = "*"
+#   pattern_type  = "LITERAL"
+#   principal     = "User:${confluent_service_account.cluster_owner.id}"
+#   host          = "*"
+#   operation     = "DESCRIBE_CONFIGS"
+#   permission    = "ALLOW"
+  
+#   credentials {
+#     key    = confluent_api_key.su_api_key.id
+#     secret = confluent_api_key.su_api_key.secret
+#   }
+# }
+
+# resource "confluent_kafka_acl" "cluster_owner_acl_create_topic_resource" {
+#   kafka_cluster {
+#     id = confluent_kafka_cluster.kafka_cluster.id
+#   }
+#   rest_endpoint = confluent_kafka_cluster.kafka_cluster.rest_endpoint
+
+#   resource_type = "TOPIC"
+#   resource_name = "*"
+#   pattern_type  = "LITERAL"
+#   principal     = "User:${confluent_service_account.cluster_owner.id}"
+#   host          = "*"
+#   operation     = "CREATE"
+#   permission    = "ALLOW"
+  
+#   credentials {
+#     key    = confluent_api_key.su_api_key.id
+#     secret = confluent_api_key.su_api_key.secret
+#   }
+# }
+
+# resource "confluent_kafka_acl" "cluster_owner_acl_create_topic" {
+#   kafka_cluster {
+#     id = confluent_kafka_cluster.kafka_cluster.id
+#   }
+#   rest_endpoint = confluent_kafka_cluster.kafka_cluster.rest_endpoint
+
+#   resource_type = "CLUSTER"
+#   resource_name = "kafka-cluster"
+#   pattern_type  = "LITERAL"
+#   principal     = "User:${confluent_service_account.cluster_owner.id}"
+#   host          = "*"
+#   operation     = "CREATE"
+#   permission    = "ALLOW"
+  
+#   credentials {
+#     key    = confluent_api_key.su_api_key.id
+#     secret = confluent_api_key.su_api_key.secret
+#   }
+# }
+
+# resource "confluent_kafka_acl" "cluster_owner_acl_create_acls" {
+#   kafka_cluster {
+#     id = confluent_kafka_cluster.kafka_cluster.id
+#   }
+#   rest_endpoint = confluent_kafka_cluster.kafka_cluster.rest_endpoint
+
+#   resource_type = "CLUSTER"
+#   resource_name = "kafka-cluster"
+#   pattern_type  = "LITERAL"
+#   principal     = "User:${confluent_service_account.cluster_owner.id}"
+#   host          = "*"
+#   operation     = "ALTER"
+#   permission    = "ALLOW"
+  
+#   credentials {
+#     key    = confluent_api_key.su_api_key.id
+#     secret = confluent_api_key.su_api_key.secret
+#   }
+# }
